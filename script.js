@@ -85,6 +85,11 @@ let userData = {
   songCurrentTime: 0,
 };
 
+const playPauseToggle = (buttonToShow, buttonToHide) => {
+    buttonToShow.classList.replace("d-none", "d-block");
+    buttonToHide.classList.replace("d-block", "d-none");
+}
+
 const playSong = (id) => {
   const song = userData?.songs.find((song) => song.id === id);
   audio.src = song.src;
@@ -97,6 +102,7 @@ const playSong = (id) => {
   }
   userData.currentSong = song;
   playButton.classList.add("playing");
+  playPauseToggle(pauseButton, playButton);
 
   highlightCurrentSong();
   setPlayerDisplay();
@@ -108,6 +114,7 @@ const pauseSong = () => {
   userData.songCurrentTime = audio.currentTime;
 
   playButton.classList.remove("playing");
+  playPauseToggle(playButton, pauseButton);
   audio.pause();
 };
 

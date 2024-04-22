@@ -267,6 +267,16 @@ button:focus,
   fill: #ff0000;
 }
 
+
+/* display buttons */
+.d-none{
+  display: none;
+}
+
+.d-block {
+  display: block;
+}
+
 @media (max-width: 700px) {
   .player,
   .playlist {
