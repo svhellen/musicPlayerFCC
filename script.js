@@ -420,27 +420,27 @@ function formatTime(time) {
 }
 
 // modal
-const modal = document.getElementById("myModal");
-const closeModal = document.getElementsByClassName("close")[0];
+// const modal = document.getElementById("myModal");
+// const closeModal = document.getElementsByClassName("close")[0];
 
-function openModal(content) {
-  modal.style.display = "block";
+// function openModal(content) {
+//   modal.style.display = "block";
 
-  let modalContent = document.getElementsByClassName("modal-content");
-  if (content === "playlists") {
-    modalContent.innerHTML = renderSongs(sortSongs());
-  }
-}
+//   let modalContent = document.getElementsByClassName("modal-content");
+//   if (content === "playlists") {
+//     modalContent.innerHTML = renderSongs(sortSongs());
+//   }
+// }
 
-closeModal.onclick = function () {
-  modal.style.display = "none";
-};
+// closeModal.onclick = function () {
+//   modal.style.display = "none";
+// };
 
-window.onclick = function (event) {
-  if (event.target == modal) {
-    modal.style.display = "none";
-  }
-};
+// window.onclick = function (event) {
+//   if (event.target == modal) {
+//     modal.style.display = "none";
+//   }
+// };
 
 // toggle expandir playlist
 function playlistToggle() {
