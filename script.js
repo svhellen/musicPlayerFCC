@@ -4,6 +4,16 @@ const pauseButton = document.getElementById("pause");
 const nextButton = document.getElementById("next");
 const previousButton = document.getElementById("previous");
 const shuffleButton = document.getElementById("shuffle");
+const repeatButton = document.getElementById("repeat");
+let isPlaying = false;
+let intervalId;
+const trackProgress = document.querySelector("#track-progress");
+const spanProgressCurrentTime = document.querySelector(
+  "#progress-current-time"
+);
+const spanProgressDuration = document.querySelector("#progress-duration");
+let repeatActive = null;
+let idSongToRepeat = null;
 
 const allSongs = [
   {
@@ -86,9 +96,9 @@ let userData = {
 };
 
 const playPauseToggle = (buttonToShow, buttonToHide) => {
-    buttonToShow.classList.replace("d-none", "d-block");
-    buttonToHide.classList.replace("d-block", "d-none");
-}
+  buttonToShow.classList.replace("d-none", "d-block");
+  buttonToHide.classList.replace("d-block", "d-none");
+};
 
 const playSong = (id) => {
   const song = userData?.songs.find((song) => song.id === id);
@@ -103,6 +113,8 @@ const playSong = (id) => {
   userData.currentSong = song;
   playButton.classList.add("playing");
   playPauseToggle(pauseButton, playButton);
+  isPlaying = true;
+  intervalId = setInterval(updateProgress, 1000);
 
   highlightCurrentSong();
   setPlayerDisplay();
@@ -115,10 +127,14 @@ const pauseSong = () => {
 
   playButton.classList.remove("playing");
   playPauseToggle(playButton, pauseButton);
+  isPlaying = false;
+  clearInterval(intervalId);
   audio.pause();
 };
 
 const playNextSong = () => {
+  repeatReset();
+
   if (userData?.currentSong === null) {
     playSong(userData?.songs[0].id);
   } else {
@@ -130,6 +146,8 @@ const playNextSong = () => {
 };
 
 const playPreviousSong = () => {
+  repeatReset();
+
   if (userData?.currentSong === null) return;
   else {
     const currentSongIndex = getCurrentSongIndex();
@@ -150,6 +168,32 @@ const shuffle = () => {
   setPlayButtonAccessibleText();
 };
 
+const repeatAll = () => {
+  repeatButton.classList.replace("no-repeat", "repeat-all");
+  repeatButton.innerHTML = `<i class="bi bi-repeat"></i>`; // repeat-all
+  repeatActive = "playlist";
+};
+
+const repeatOne = () => {
+  repeatButton.classList.replace("repeat-all", "repeat-one");
+  repeatButton.innerHTML = `<i class="bi bi-repeat-1"></i>`; // repeat-one
+  repeatActive = "song";
+
+  if (userData?.currentSong === null) {
+    idSongToRepeat = userData?.songs[0].id;
+  } else {
+    idSongToRepeat = userData?.currentSong.id;
+  }
+};
+
+const repeatReset = () => {
+  repeatButton.classList.remove("repeat-one", "repeat-all");
+  repeatButton.classList.add("no-repeat");
+  repeatButton.innerHTML = `<i class="bi bi-repeat"></i>`; // no-repeat
+  repeatActive = null;
+  idSongToRepeat = null;
+};
+
 const deleteSong = (id) => {
   if (userData?.currentSong?.id === id) {
     userData.currentSong = null;
@@ -157,6 +201,10 @@ const deleteSong = (id) => {
 
     pauseSong();
     setPlayerDisplay();
+  }
+
+  if (idSongToRepeat === id) {
+    repeatReset();
   }
 
   userData.songs = userData?.songs.filter((song) => song.id !== id);
@@ -184,13 +232,22 @@ const deleteSong = (id) => {
 };
 
 const setPlayerDisplay = () => {
+  let song = userData?.currentSong || userData?.songs[0];
+
   const playingSong = document.getElementById("player-song-title");
   const songArtist = document.getElementById("player-song-artist");
-  const currentTitle = userData?.currentSong?.title;
-  const currentArtist = userData?.currentSong?.artist;
 
-  playingSong.textContent = currentTitle ? currentTitle : "";
-  songArtist.textContent = currentArtist ? currentArtist : "";
+  const currentTitle = song?.title || "";
+  const currentArtist = song?.artist || "";
+  const currentSongTime = song?.songCurrentTime || 0;
+  const currentSongDuration = song?.duration || 0;
+
+  playingSong.textContent = currentTitle;
+  songArtist.textContent = currentArtist;
+
+  spanProgressCurrentTime.innerText = formatTime(currentSongTime);
+  updateProgress();
+  // spanProgressDuration.innerText = formatTime(currentSongDuration);
 };
 
 const highlightCurrentSong = () => {
@@ -211,7 +268,7 @@ const renderSongs = (array) => {
     .map((song) => {
       return `
       <li id="song-${song.id}" class="playlist-song">
-      <button class="playlist-song-info" onclick="playSong(${song.id})">
+      <button class="playlist-song-info" onclick="repeatReset(); playSong(${song.id})">
           <span class="playlist-song-title">${song.title}</span>
           <span class="playlist-song-artist">${song.artist}</span>
           <span class="playlist-song-duration">${song.duration}</span>
@@ -256,12 +313,46 @@ previousButton.addEventListener("click", playPreviousSong);
 
 shuffleButton.addEventListener("click", shuffle);
 
-audio.addEventListener("ended", () => {
+repeatButton.addEventListener("click", () => {
+  switch (true) {
+    case repeatButton.classList.contains("no-repeat"):
+      repeatAll();
+      break;
+
+    case repeatButton.classList.contains("repeat-all"):
+      repeatOne();
+      break;
+
+    case repeatButton.classList.contains("repeat-one"):
+      repeatReset();
+      break;
+
+    default:
+      break;
+  }
+});
+
+audio.addEventListener("ended", handleSongEnd);
+
+function handleSongEnd() {
   const currentSongIndex = getCurrentSongIndex();
   const nextSongExists = userData?.songs[currentSongIndex + 1] !== undefined;
 
-  if (nextSongExists) {
-    playNextSong();
+  if (repeatActive === "song") {
+    playSong(idSongToRepeat);
+  } else {
+    if (nextSongExists) {
+      playNextSong();
+    } else {
+      handleEndOfPlaylist();
+    }
+  }
+}
+
+function handleEndOfPlaylist() {
+  if (repeatActive === "playlist") {
+    let firstSongId = userData?.songs[0].id;
+    playSong(firstSongId);
   } else {
     userData.currentSong = null;
     userData.songCurrentTime = 0;
@@ -270,7 +361,7 @@ audio.addEventListener("ended", () => {
     highlightCurrentSong();
     setPlayButtonAccessibleText();
   }
-});
+}
 
 const sortSongs = () => {
   userData?.songs.sort((a, b) => {
@@ -288,5 +379,86 @@ const sortSongs = () => {
   return userData?.songs;
 };
 
+// CONTROLS
+// volume
+
+// duration
+// define o valor máximo do controle deslizante como a duração da musica
+audio.addEventListener("loadedmetadata", () => {
+  trackProgress.value = audio.currentTime;
+  trackProgress.max = audio.duration;
+
+  // spanProgressCurrentTime.innerText = formatTime(trackProgress.value);
+  spanProgressDuration.innerText = formatTime(trackProgress.max);
+});
+
+// interação com o track progress da musica
+trackProgress.addEventListener(
+  "input",
+  () => {
+    let newValue = trackProgress.value;
+    updateProgress(newValue);
+  },
+  false
+);
+
+function updateProgress(newValue) {
+  if (newValue) {
+    audio.currentTime = newValue;
+  }
+
+  trackProgress.value = audio.currentTime;
+
+  spanProgressCurrentTime.innerText = formatTime(audio.currentTime);
+  spanProgressDuration.innerText = formatTime(trackProgress.max);
+}
+
+function formatTime(time) {
+  const minutes = Math.floor(time / 60);
+  const seconds = Math.floor(time % 60);
+  return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+}
+
+// modal
+const modal = document.getElementById("myModal");
+const closeModal = document.getElementsByClassName("close")[0];
+
+function openModal(content) {
+  modal.style.display = "block";
+
+  let modalContent = document.getElementsByClassName("modal-content");
+  if (content === "playlists") {
+    modalContent.innerHTML = renderSongs(sortSongs());
+  }
+}
+
+closeModal.onclick = function () {
+  modal.style.display = "none";
+};
+
+window.onclick = function (event) {
+  if (event.target == modal) {
+    modal.style.display = "none";
+  }
+};
+
+// toggle expandir playlist
+function playlistToggle() {
+  let playlistHTML = document.getElementById("playlist-songs");
+
+  if (playlistHTML.classList.contains("show")) {
+    playlistHTML.classList.remove("show");
+  } else {
+    playlistHTML.classList.add("show");
+    var playlistPosition = playlistHTML.offsetTop;
+
+    window.scrollTo({
+      top: playlistPosition,
+      behavior: "smooth",
+    });
+  }
+}
+
 renderSongs(sortSongs());
 setPlayButtonAccessibleText();
+setPlayerDisplay();
