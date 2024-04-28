@@ -269,8 +269,10 @@ const renderSongs = (array) => {
       return `
       <li id="song-${song.id}" class="playlist-song">
       <button class="playlist-song-info" onclick="repeatReset(); playSong(${song.id})">
-          <span class="playlist-song-title">${song.title}</span>
-          <span class="playlist-song-artist">${song.artist}</span>
+          <span class="title-artist">
+            <span class="playlist-song-title">${song.title}</span>
+            <span class="playlist-song-artist">${song.artist}</span>
+          </span>
           <span class="playlist-song-duration">${song.duration}</span>
       </button>
       <button onclick="deleteSong(${song.id})" class="playlist-song-delete" aria-label="Delete ${song.title}">
@@ -408,6 +410,14 @@ function updateProgress(newValue) {
   }
 
   trackProgress.value = audio.currentTime;
+
+  // Calcula a porcentagem de preenchimento para o gradiente linear
+  const fillPercentage =
+    (trackProgress.value / parseFloat(trackProgress.max)) * 100;
+
+  // Atualiza o gradiente linear com a nova posição do "thumb"
+  trackProgress.style.background = `linear-gradient(to right, #E72D8E 0%, #E72D8E ${fillPercentage}%, #d3d3d3 ${fillPercentage}%, #d3d3d3 100%)`;
+  // trackProgress.style.setProperty('--fill', fillPercentage);
 
   spanProgressCurrentTime.innerText = formatTime(audio.currentTime);
   spanProgressDuration.innerText = formatTime(trackProgress.max);
